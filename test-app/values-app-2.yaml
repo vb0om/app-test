@@ -46,9 +46,8 @@ service:
 
 ingress:
   enabled: true
-  className: ""
+  className: "nginx"
   annotations:
-    kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
     - host: demo-app-2.maddevs.org
@@ -88,16 +87,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-# Additional volumes on the output Deployment definition.
-volumes:
-  - name: nginx-html
-    configMap:
-      name: nginx-html-page
-  - name: nginx-conf
-    configMap:
-      name: nginx-conf
-
-# Additional volumeMounts on the output Deployment definition.
+# VolumeMounts and Volumes of configmaps to the output Deployment definition.
 volumeMounts:
   - name: nginx-html
     mountPath: /usr/share/nginx/html
@@ -112,6 +102,10 @@ tolerations: []
 
 affinity: {}
 
+# Set true if needs networkpolicy for istio service mesh
+networkpolicy_istio_injection: true
+
+# Define ingress\egress rule for the current deployment via networkpolicy
 networkpolicy:
   ingress: 
     - from:

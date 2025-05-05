@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "test-app.fullname" . }}
+  name: {{ .Release.Name }}
   labels:
     {{- include "test-app.labels" . | nindent 4 }}
 spec:
@@ -50,10 +50,12 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- range .Values.volumeMounts }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ $.Release.Name }}-{{ .name }}
+      {{- end }}  
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "test-app.fullname" . }}
+  name: {{ .Release.Name }}
 spec:
   podSelector:
     matchLabels:
@@ -18,4 +18,37 @@ spec:
   egress:
   {{- toYaml .Values.networkpolicy.egress | nindent 4 }}
 {{- end }}
+{{- end }}
+---
+{{- if .Values.networkpolicy_istio_injection }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-allow-istio-injection-and-mesh
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "test-app.selectorLabels" . | nindent 6 }}
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          istio-injection: enabled  # or select istio-system namespace
+    ports:
+    - protocol: TCP
+      port: 443     # for webhook calls (sidecar injector)
+    - protocol: TCP
+      port: 15008   # Ambient mesh / sidecar proxy traffic port
+    - protocol: TCP
+      port: 15017   # Example Istio node port (adjust if used)
+    - protocol: TCP
+      port: 15090   # Istio telemetry (optional)
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          istio-injection: enabled
+    ports:
+    - protocol: TCP
+      port: 15008
 {{- end }}
