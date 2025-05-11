@@ -1,0 +1,11 @@
+{{- if .Values.istio.egress_hosts }}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ .Release.Name }}-destination-rule
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  host: {{ .Values.istio.egress_gateway }}.{{ .Values.istio.egress_namespace }}.svc.cluster.local
+  subsets:
+  - name: {{ .Release.Name }}-service-entry
+{{- end }}
