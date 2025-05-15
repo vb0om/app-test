@@ -3,15 +3,18 @@ apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: {{ .Release.Name }}-virtual-service
-  namespace: {{ .Values.istio.egress_namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
+  exportTo:
+  - "."
+  - {{ .Values.istio.egress_namespace }}
   hosts:
   {{- range .Values.istio.egress_hosts }}
   - {{ . | quote }}
   {{- end }}
   gateways:
   - mesh
-  - {{ .Values.istio.egress_gateway }}
+  - {{ .Values.istio.egress_namespace }}/{{ .Values.istio.egress_gateway }}
   http:
   - match:
     - gateways:
@@ -20,22 +23,23 @@ spec:
     route:
     - destination:
         host: {{ .Values.istio.egress_gateway }}.{{ .Values.istio.egress_namespace }}.svc.cluster.local
-        subset: {{ .Release.Name }}-service-entry
         port:
           number: 80
       weight: 100
+  {{- range .Values.istio.egress_hosts }}
   - match:
     - gateways:
-      - {{ .Values.istio.egress_gateway }}
+      - {{ $.Values.istio.egress_namespace }}/{{ $.Values.istio.egress_gateway }}
       port: 80
+      authority:
+        exact: {{ . | quote }}
     route:
-    {{- range .Values.istio.egress_hosts }}
     - destination:
         host: {{ . | quote }}
         port:
           number: 80
       weight: 100
-    {{- end }}
+  {{- end }}
   tls:
   - match:
     - gateways:
@@ -48,23 +52,20 @@ spec:
     route:
     - destination:
         host: {{ .Values.istio.egress_gateway }}.{{ .Values.istio.egress_namespace }}.svc.cluster.local
-        subset: {{ .Release.Name }}-service-entry
         port:
           number: 443
+  {{- range .Values.istio.egress_hosts }}
   - match:
     - gateways:
-      - {{ .Values.istio.egress_gateway }}
+      - {{ $.Values.istio.egress_namespace }}/{{ $.Values.istio.egress_gateway }}
       port: 443
       sniHosts:
-      {{- range .Values.istio.egress_hosts }}
       - {{ . | quote }}
-      {{- end }}
     route:
-    {{- range .Values.istio.egress_hosts }}
     - destination:
         host: {{ . | quote }}
         port:
           number: 443
       weight: 100
-    {{- end }}
+  {{- end }}
 {{- end }}

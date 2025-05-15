@@ -5,6 +5,9 @@ metadata:
   name: {{ .Release.Name }}-service-entry
   namespace: {{ .Release.Namespace | quote }}
 spec:
+  exportTo:
+  - "."
+  - {{ .Values.istio.egress_namespace }}
   hosts:
   {{- range .Values.istio.egress_hosts }}
   - {{ . | quote }}
@@ -17,4 +20,5 @@ spec:
     name: https
     protocol: HTTPS
   resolution: DNS
+  location: MESH_EXTERNAL
 {{- end }}

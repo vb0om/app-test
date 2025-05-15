@@ -5,6 +5,8 @@ metadata:
   name: {{ .Release.Name }}-destination-rule
   namespace: {{ .Release.Namespace | quote }}
 spec:
+  exportTo:
+  - "."
   host: {{ .Values.istio.egress_gateway }}.{{ .Values.istio.egress_namespace }}.svc.cluster.local
   subsets:
   - name: {{ .Release.Name }}-service-entry

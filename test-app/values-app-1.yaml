@@ -20,13 +20,7 @@ additional_network_policy:
     - name: "monitoring"
     - name: "ingress-nginx"
     - name: "app-2"
-  # Egress
-  egress:
-    namespaces:
-    - name: "istio-system"
-      ports: 
-      - 80
-      - 443
+    - name: "egress-gateway"
 
 pageContent: |
   "<h1>Welcome to Application 1</h1>"
