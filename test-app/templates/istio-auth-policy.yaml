@@ -1,0 +1,29 @@
+# Enable strict mTLS in the Release namespace
+{{- if .Values.istio.force_mtls }}
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: {{ .Release.Name }}-force-using-mtls
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  mtls:
+    mode: STRICT
+{{- end }}
+---
+# AuthorizationPolicy in the Release namespace
+{{- if and .Values.istio.force_mtls .Values.istio.auth_policy }}
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ .Release.Name }}-allow-ingress
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  action: DENY
+  rules:
+  - from:
+    - source:
+        notNamespaces:
+        {{- range .Values.istio.auth_policy.deny.notNamespaces }}
+        - {{ . | quote }}
+        {{- end }}
+{{- end }}

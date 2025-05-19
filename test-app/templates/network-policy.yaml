@@ -1,8 +1,7 @@
-{{- if .Values.networkpolicy }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ .Release.Name }}-network-policy
 spec:
   podSelector:
     matchLabels:
@@ -10,21 +9,61 @@ spec:
   policyTypes:
   - Ingress
   - Egress
-{{- if .Values.networkpolicy.ingress }}
   ingress:
-  {{- toYaml .Values.networkpolicy.ingress | nindent 4 }}
-{{- end }}
-{{- if .Values.networkpolicy.egress }}
+  {{- if .Values.additional_network_policy.ingress }}
+    - from:
+      {{- range .Values.additional_network_policy.ingress.namespaces }}
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .name | quote }}
+      {{- if .ports }}
+      ports:
+      {{- range .ports }}
+        - protocol: TCP
+          port: {{ . }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+  {{- else }}
+    - {}  # Allow from anywhere
+  {{- end }}
   egress:
-  {{- toYaml .Values.networkpolicy.egress | nindent 4 }}
-{{- end }}
-{{- end }}
+    # Egress to kube-system namespace for DNS resolution
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+      - protocol: TCP
+        port: 53
+      - protocol: UDP
+        port: 53
+    {{- if .Values.additional_network_policy.egress }}
+    # Additional Egress rules
+    - to:
+      {{- range .Values.additional_network_policy.egress.namespaces }}
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: {{ .name | quote }}
+      {{- if .ports }}
+      ports:
+      {{- range .ports }}
+        - protocol: TCP
+          port: {{ . }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+
 ---
 {{- if .Values.networkpolicy_istio_injection }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Release.Name }}-allow-istio-injection-and-mesh
+  name: {{ .Release.Name }}-network-policy-istio
 spec:
   podSelector:
     matchLabels:
@@ -33,22 +72,13 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          istio-injection: enabled  # or select istio-system namespace
-    ports:
-    - protocol: TCP
-      port: 443     # for webhook calls (sidecar injector)
-    - protocol: TCP
-      port: 15008   # Ambient mesh / sidecar proxy traffic port
-    - protocol: TCP
-      port: 15017   # Example Istio node port (adjust if used)
-    - protocol: TCP
-      port: 15090   # Istio telemetry (optional)
+          istio-injection: enabled  # Select namespace with this label
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system        # Select namespace with deployed Istiod pod
   egress:
   - to:
     - namespaceSelector:
         matchLabels:
-          istio-injection: enabled
-    ports:
-    - protocol: TCP
-      port: 15008
+          name: istio-system        # Select namespace with deployed Istiod pod
 {{- end }}
